@@ -22,6 +22,7 @@ import com.forgefit.app.data.seed.ExerciseSeedData
 import com.forgefit.app.ui.navigation.BottomNavBar
 import com.forgefit.app.ui.navigation.Screen
 import com.forgefit.app.ui.screens.active.ActiveWorkoutScreen
+import com.forgefit.app.ui.screens.ai.AiAssistantScreen
 import com.forgefit.app.ui.screens.exercises.ExerciseDetailScreen
 import com.forgefit.app.ui.screens.exercises.ExerciseListScreen
 import com.forgefit.app.ui.screens.exercises.MuscleMapScreen
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     Screen.Home.route,
                     Screen.Workouts.route,
                     Screen.Exercises.route,
+                    Screen.AiAssistant.route,
                     Screen.Progress.route,
                     Screen.Profile.route
                 )
@@ -152,7 +154,6 @@ class MainActivity : ComponentActivity() {
                             composable(Screen.CustomBuilder.route) {
                                 CustomWorkoutBuilderScreen(
                                     onSaveWorkout = { custom ->
-                                        // Custom workout saved
                                         navController.popBackStack()
                                     },
                                     onBack = { navController.popBackStack() }
@@ -169,6 +170,14 @@ class MainActivity : ComponentActivity() {
                                         mainViewModel.toggleFavorite(id, isFav)
                                     },
                                     onOpenMuscleMap = { navController.navigate(Screen.MuscleMap.route) }
+                                )
+                            }
+
+                            composable(Screen.AiAssistant.route) {
+                                AiAssistantScreen(
+                                    userProfile = userProfile,
+                                    sessions = sessions,
+                                    exercises = exercises
                                 )
                             }
 

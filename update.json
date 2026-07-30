@@ -1,7 +1,7 @@
 {
-    "versionCode": 2,
-    "versionName": "1.1.0",
-    "apkUrl": "https://raw.githubusercontent.com/dk072/ForgeFit/main/ForgeFit-v1.1.0.apk",
-    "releaseNotes": "ForgeFit 2-Dumbbell Training update with interactive muscle map, procedural movement animations, and GitHub in-app automatic updater.",
+    "versionCode": 3,
+    "versionName": "1.2.0",
+    "apkUrl": "https://raw.githubusercontent.com/dk072/ForgeFit/main/ForgeFit-v1.2.0.apk",
+    "releaseNotes": "🤖 ForgeFit AI Engine Update: Added AI Coach Assistant tab, intelligent 2-dumbbell progressive overload reasoning, and automated form & macro nutrition audits.",
     "isMandatory": false
 }

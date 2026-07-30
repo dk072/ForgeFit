@@ -9,6 +9,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector?
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Workouts : Screen("workouts", "Workouts", Icons.Default.FitnessCenter)
     object Exercises : Screen("exercises", "Exercises", Icons.Default.FormatListNumbered)
+    object AiAssistant : Screen("ai_assistant", "AI Coach", Icons.Default.AutoAwesome)
     object Progress : Screen("progress", "Progress", Icons.Default.BarChart)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
 
@@ -29,6 +30,7 @@ val BOTTOM_NAV_ITEMS = listOf(
     Screen.Home,
     Screen.Workouts,
     Screen.Exercises,
+    Screen.AiAssistant,
     Screen.Progress,
     Screen.Profile
 )
