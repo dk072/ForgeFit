@@ -1,0 +1,7 @@
+{
+    "versionCode": 2,
+    "versionName": "1.1.0",
+    "apkUrl": "https://raw.githubusercontent.com/dk072/ForgeFit/main/ForgeFit-v1.1.0.apk",
+    "releaseNotes": "ForgeFit 2-Dumbbell Training update with interactive muscle map, procedural movement animations, and GitHub in-app automatic updater.",
+    "isMandatory": false
+}

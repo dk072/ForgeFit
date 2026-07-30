@@ -27,12 +27,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.forgefit.app.data.model.*
+import com.forgefit.app.data.updater.UpdateInfo
+import com.forgefit.app.data.updater.UpdateManager
 import com.forgefit.app.ui.theme.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
 private const val GITHUB_REPO_URL = "https://github.com/dk072/ForgeFit"
-private const val GITHUB_APK_RAW_URL = "https://github.com/dk072/ForgeFit/raw/main/ForgeFit-v1.1.0.apk"
 
 @Composable
 fun ProfileScreen(
@@ -47,8 +48,15 @@ fun ProfileScreen(
     var vibrationEnabled by remember(userProfile) { mutableStateOf(userProfile.vibrationEnabled) }
 
     var isCheckingUpdate by remember { mutableStateOf(false) }
-    var showUpdateDialog by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0) }
+    var availableUpdateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+    var readyApkFile by remember { mutableStateOf<File?>(null) }
+    var statusMessage by remember { mutableStateOf("") }
+
     val coroutineScope = rememberCoroutineScope()
+    val currentVersionName = remember { UpdateManager.getCurrentVersionName(context) }
 
     Column(
         modifier = Modifier
@@ -189,7 +197,7 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // GITHUB DEFAULT UPDATE SERVER & APP INFORMATION CARD
+        // GITHUB AUTOMATIC IN-APP UPDATE ENGINE CARD
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -201,13 +209,13 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("GITHUB UPDATE SERVER", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeonGold)
+                    Text("AUTOMATIC GITHUB UPDATER", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = NeonGold)
                     Surface(
                         color = NeonGold.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = "DEFAULT SERVER",
+                            text = "LIVE GITHUB ENGINE",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = NeonGold,
@@ -218,13 +226,14 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Server: github.com/dk072/ForgeFit",
-                    fontSize = 12.sp,
-                    color = TextSecondary
+                    text = "Current App Version: v$currentVersionName",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
                 Text(
-                    text = "Current App Version: v1.1.0 (Build 2)",
-                    fontSize = 12.sp,
+                    text = "Auto-Sync Server: raw.githubusercontent.com/dk072/ForgeFit",
+                    fontSize = 11.sp,
                     color = TextMuted
                 )
 
@@ -238,10 +247,17 @@ fun ProfileScreen(
                     Button(
                         onClick = {
                             isCheckingUpdate = true
+                            statusMessage = "Connecting to GitHub update server..."
                             coroutineScope.launch {
-                                delay(1000L) // Connecting to GitHub update channel
+                                val info = UpdateManager.checkForUpdates(context)
                                 isCheckingUpdate = false
-                                showUpdateDialog = true
+                                if (info != null) {
+                                    availableUpdateInfo = info
+                                    showDialog = true
+                                } else {
+                                    availableUpdateInfo = null
+                                    showDialog = true
+                                }
                             }
                         },
                         modifier = Modifier
@@ -249,7 +265,7 @@ fun ProfileScreen(
                             .height(46.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = SurfaceVariantDark),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = !isCheckingUpdate
+                        enabled = !isCheckingUpdate && !isDownloading
                     ) {
                         if (isCheckingUpdate) {
                             CircularProgressIndicator(
@@ -260,7 +276,7 @@ fun ProfileScreen(
                         } else {
                             Icon(Icons.Default.SystemUpdate, contentDescription = null, tint = NeonGold, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check GitHub", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Check for Update", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
 
@@ -285,23 +301,24 @@ fun ProfileScreen(
         }
     }
 
-    // GITHUB UPDATE STATUS DIALOG
-    if (showUpdateDialog) {
+    // UPDATE STATUS DIALOG
+    if (showDialog) {
+        val update = availableUpdateInfo
         AlertDialog(
-            onDismissRequest = { showUpdateDialog = false },
+            onDismissRequest = { if (!isDownloading) showDialog = false },
             containerColor = SurfaceDark,
             shape = RoundedCornerShape(20.dp),
             icon = {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    imageVector = if (update != null) Icons.Default.CloudDownload else Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = NeonGreen,
+                    tint = if (update != null) NeonGold else NeonGreen,
                     modifier = Modifier.size(40.dp)
                 )
             },
             title = {
                 Text(
-                    text = "GitHub Update Server Connected",
+                    text = if (update != null) "Update Available (v${update.versionName})!" else "App is Up to Date",
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
                     fontSize = 17.sp
@@ -309,43 +326,88 @@ fun ProfileScreen(
             },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "ForgeFit is connected to default GitHub server (github.com/dk072/ForgeFit).",
-                        fontSize = 13.sp,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Surface(
-                        color = SurfaceVariantDark,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Installed Version: v1.1.0", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeonGold)
-                            Text("Latest Release: v1.1.0 (Latest)", fontSize = 12.sp, color = TextPrimary)
-                            Text("Status: Up to date", fontSize = 11.sp, color = NeonGreen)
+                    if (update != null) {
+                        Text(
+                            text = "A new version of ForgeFit is available on GitHub!",
+                            fontSize = 13.sp,
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            color = SurfaceVariantDark,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Version: v${update.versionName}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeonGold)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Release Notes:\n${update.releaseNotes}", fontSize = 11.sp, color = TextPrimary, lineHeight = 16.sp)
+                            }
                         }
+
+                        if (isDownloading) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Downloading update from GitHub... $downloadProgress%", fontSize = 12.sp, color = NeonGold, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = downloadProgress / 100f,
+                                color = NeonGold,
+                                trackColor = SurfaceVariantDark,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "You are already using the latest version (v$currentVersionName). No update required!",
+                            fontSize = 13.sp,
+                            color = TextSecondary
+                        )
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_APK_RAW_URL))
-                        context.startActivity(intent)
-                        showUpdateDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonGold),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.CloudDownload, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Download APK", color = BackgroundDark, fontWeight = FontWeight.Bold)
+                if (update != null) {
+                    Button(
+                        onClick = {
+                            if (readyApkFile != null) {
+                                UpdateManager.installApk(context, readyApkFile!!)
+                            } else {
+                                isDownloading = true
+                                coroutineScope.launch {
+                                    val downloadedFile = UpdateManager.downloadApk(context, update.apkUrl) { progress ->
+                                        downloadProgress = progress
+                                    }
+                                    isDownloading = false
+                                    if (downloadedFile != null) {
+                                        readyApkFile = downloadedFile
+                                        UpdateManager.installApk(context, downloadedFile)
+                                    }
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGold),
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = !isDownloading
+                    ) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (readyApkFile != null) "INSTALL NOW" else "DOWNLOAD & INSTALL", color = BackgroundDark, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Button(
+                        onClick = { showDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGold),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("OK", color = BackgroundDark, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showUpdateDialog = false }) {
-                    Text("CLOSE", color = TextSecondary)
+                if (update != null && !isDownloading) {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("CANCEL", color = TextSecondary)
+                    }
                 }
             }
         )
